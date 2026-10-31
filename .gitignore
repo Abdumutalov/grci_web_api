@@ -1,0 +1,22 @@
+# dependencies
+/node_modules
+
+# build output
+/dist
+
+# SPA-сборка фронтенда (копируется при деплое)
+/build
+
+# protocol logs
+/log
+/public/log
+
+# env — секреты не коммитим, шаблон в .env.example
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
