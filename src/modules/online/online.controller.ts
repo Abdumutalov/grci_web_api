@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
@@ -53,7 +53,52 @@ export class OnlineController {
   @Post('getRequestByDate')
   @HttpCode(200)
   async requestByDate(@Res() res: Response, @Body() body: any): Promise<void> {
-    this.send(res, await this.repo.getRequestByDate(body.to, body.from));
+    this.send(res, await this.repo.getRequestByDate(body.to, body.from, body.orgCat));
+  }
+
+  /**
+   * Статистика одной организации по дням (клик по банку в таблице уровня 1).
+   * body: { bank, to?, from?, orgCat? } — даты 'DD.MM.YYYY', как в getRequestByDate
+   * (to — начало, from — конец периода); без дат — за весь период. Ответ — «сырой» массив.
+   */
+  @Post('getRequestBankByDate')
+  @HttpCode(200)
+  @ApiBody({
+    schema: {
+      properties: {
+        bank: { type: 'string', example: '002' },
+        to: { type: 'string', example: '01.10.2026', description: 'начало периода' },
+        from: { type: 'string', example: '31.10.2026', description: 'конец периода' },
+        orgCat: { type: 'string', example: '01' },
+      },
+      required: ['bank'],
+    },
+  })
+  async requestBankByDate(@Res() res: Response, @Body() body: any): Promise<void> {
+    this.send(res, await this.repo.getRequestBankByDate(body.to, body.from, body.bank, body.orgCat));
+  }
+
+  /**
+   * Детализация: список запросов организации за день (клик по дате на странице
+   * «Статистика организации в разрезе дат»). body: { bank, date, queryType?, state?, limit? }.
+   * Ответ — «сырой» массив, не больше limit строк (по умолчанию 1000).
+   */
+  @Post('getRequestDetail')
+  @HttpCode(200)
+  @ApiBody({
+    schema: {
+      properties: {
+        bank: { type: 'string', example: '002' },
+        date: { type: 'string', example: '31.10.2026', description: 'день, DD.MM.YYYY' },
+        queryType: { type: 'number', example: 3, description: 'R_QUERY_TYPES.ID' },
+        state: { type: 'number', example: 3, description: '2 — принят, 3 — отклонён (вместе со статусом 4)' },
+        limit: { type: 'number', example: 1000, description: 'по умолчанию 1000, максимум 10000' },
+      },
+      required: ['bank', 'date'],
+    },
+  })
+  async requestDetail(@Res() res: Response, @Body() body: any): Promise<void> {
+    this.send(res, await this.repo.getRequestDetail(body.date, body.bank, body.queryType, body.state, body.limit));
   }
 
   @Post('getRequestLevel2')
